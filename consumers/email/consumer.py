@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import pika
 
@@ -13,15 +14,27 @@ credentials = pika.PlainCredentials(
     RABBITMQ_PASSWORD
 )
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(
-        host=RABBITMQ_HOST,
-        port=RABBITMQ_PORT,
-        credentials=credentials
-    )
-)
+# Retry until RabbitMQ is available
+while True:
+    try:
+        print("🔄 Connecting to RabbitMQ...")
 
-channel = connection.channel()
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=RABBITMQ_HOST,
+                port=RABBITMQ_PORT,
+                credentials=credentials
+            )
+        )
+
+        channel = connection.channel()
+
+        print("✅ Connected to RabbitMQ")
+        break
+
+    except pika.exceptions.AMQPConnectionError:
+        print("❌ RabbitMQ not ready. Retrying in 5 seconds...")
+        time.sleep(5)
 
 channel.exchange_declare(
     exchange="events",

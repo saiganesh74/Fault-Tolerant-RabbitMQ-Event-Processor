@@ -4,11 +4,52 @@ services:
     container_name: rabbitmq
     hostname: rabbitmq
     ports:
-      - 5672:5672
-      - 15672:15672
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     restart: unless-stopped
+    networks:
+      - rabbitmq-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  producer:
+    build:
+      context: ./producer
+    container_name: producer
+    networks:
+      - rabbitmq-network
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+    restart: unless-stopped
+
+  consumer:
+    build:
+      context: ./consumers/email
+    container_name: consumer
+    networks:
+      - rabbitmq-network
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      PYTHONUNBUFFERED: "1"
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+    restart: unless-stopped
+networks:
+  rabbitmq-network:
 
 volumes:
   rabbitmq-data:
