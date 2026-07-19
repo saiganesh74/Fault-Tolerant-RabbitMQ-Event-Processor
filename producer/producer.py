@@ -31,13 +31,16 @@ def connect_to_rabbitmq():
 
             channel = connection.channel()
 
+            # Declare Exchange
             channel.exchange_declare(
                 exchange="events",
                 exchange_type="direct",
                 durable=True
             )
 
+            # -------------------------
             # Email Queue
+            # -------------------------
             channel.queue_declare(
                 queue="email_queue",
                 durable=True
@@ -49,7 +52,9 @@ def connect_to_rabbitmq():
                 routing_key="email"
             )
 
+            # -------------------------
             # Analytics Queue
+            # -------------------------
             channel.queue_declare(
                 queue="analytics_queue",
                 durable=True
@@ -59,6 +64,20 @@ def connect_to_rabbitmq():
                 exchange="events",
                 queue="analytics_queue",
                 routing_key="analytics"
+            )
+
+            # -------------------------
+            # Notification Queue
+            # -------------------------
+            channel.queue_declare(
+                queue="notification_queue",
+                durable=True
+            )
+
+            channel.queue_bind(
+                exchange="events",
+                queue="notification_queue",
+                routing_key="notification"
             )
 
             print("✅ Connected to RabbitMQ!", flush=True)
@@ -80,19 +99,15 @@ while True:
 
         amount = random.randint(100, 1000)
 
+        # -------------------------
+        # Email Event
+        # -------------------------
         email_event = {
             "order_id": order_id,
             "customer": "Sai",
             "amount": amount
         }
 
-        analytics_event = {
-            "order_id": order_id,
-            "customer": "Sai",
-            "revenue": amount
-        }
-
-        # Publish Email Event
         channel.basic_publish(
             exchange="events",
             routing_key="email",
@@ -104,7 +119,15 @@ while True:
 
         print(f"📧 Email Event Published: {email_event}", flush=True)
 
-        # Publish Analytics Event
+        # -------------------------
+        # Analytics Event
+        # -------------------------
+        analytics_event = {
+            "order_id": order_id,
+            "customer": "Sai",
+            "revenue": amount
+        }
+
         channel.basic_publish(
             exchange="events",
             routing_key="analytics",
@@ -116,7 +139,27 @@ while True:
 
         print(f"📊 Analytics Event Published: {analytics_event}", flush=True)
 
-        print("-" * 60, flush=True)
+        # -------------------------
+        # Notification Event
+        # -------------------------
+        notification_event = {
+            "order_id": order_id,
+            "customer": "Sai",
+            "message": "Your order has been placed successfully!"
+        }
+
+        channel.basic_publish(
+            exchange="events",
+            routing_key="notification",
+            body=json.dumps(notification_event),
+            properties=pika.BasicProperties(
+                delivery_mode=2
+            )
+        )
+
+        print(f"🔔 Notification Event Published: {notification_event}", flush=True)
+
+        print("-" * 70, flush=True)
 
         time.sleep(5)
 

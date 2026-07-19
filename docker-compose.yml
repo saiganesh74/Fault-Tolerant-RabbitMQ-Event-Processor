@@ -67,6 +67,23 @@ services:
       PYTHONUNBUFFERED: "1"
     restart: unless-stopped
 
+  notification:
+    build:
+      context: ./consumers/notification
+      dockerfile: Dockerfile
+    container_name: notification
+    networks:
+      - rabbitmq-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+
 networks:
   rabbitmq-network:
 
