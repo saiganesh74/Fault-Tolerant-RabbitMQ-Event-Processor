@@ -37,6 +37,7 @@ def connect_to_rabbitmq():
                 durable=True
             )
 
+            # Email Queue
             channel.queue_declare(
                 queue="email_queue",
                 durable=True
@@ -48,7 +49,19 @@ def connect_to_rabbitmq():
                 routing_key="email"
             )
 
-            print("✅ Connected!", flush=True)
+            # Analytics Queue
+            channel.queue_declare(
+                queue="analytics_queue",
+                durable=True
+            )
+
+            channel.queue_bind(
+                exchange="events",
+                queue="analytics_queue",
+                routing_key="analytics"
+            )
+
+            print("✅ Connected to RabbitMQ!", flush=True)
 
             return connection, channel
 
@@ -65,22 +78,45 @@ while True:
     try:
         order_id += 1
 
-        message = {
+        amount = random.randint(100, 1000)
+
+        email_event = {
             "order_id": order_id,
             "customer": "Sai",
-            "amount": random.randint(100, 1000)
+            "amount": amount
         }
 
+        analytics_event = {
+            "order_id": order_id,
+            "customer": "Sai",
+            "revenue": amount
+        }
+
+        # Publish Email Event
         channel.basic_publish(
             exchange="events",
             routing_key="email",
-            body=json.dumps(message),
+            body=json.dumps(email_event),
             properties=pika.BasicProperties(
                 delivery_mode=2
             )
         )
 
-        print(f"📤 Published: {message}", flush=True)
+        print(f"📧 Email Event Published: {email_event}", flush=True)
+
+        # Publish Analytics Event
+        channel.basic_publish(
+            exchange="events",
+            routing_key="analytics",
+            body=json.dumps(analytics_event),
+            properties=pika.BasicProperties(
+                delivery_mode=2
+            )
+        )
+
+        print(f"📊 Analytics Event Published: {analytics_event}", flush=True)
+
+        print("-" * 60, flush=True)
 
         time.sleep(5)
 

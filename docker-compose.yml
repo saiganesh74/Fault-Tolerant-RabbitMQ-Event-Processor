@@ -48,6 +48,25 @@ services:
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
     restart: unless-stopped
+
+  analytics:
+    build:
+      context: ./consumers/analytics
+      dockerfile: Dockerfile
+    container_name: analytics
+    networks:
+      - rabbitmq-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PORT: 5672
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+
 networks:
   rabbitmq-network:
 
